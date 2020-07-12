@@ -30,64 +30,92 @@ public final class MarketItemBuilder {
     private static boolean isInitialised = false;
 
     private static void initialise() {
-        details.put("waffles", new MarketItem(
-                "waffles",
-                "Hot and fresh waffles.",
-                50
-        ));
-
-        details.put("Blueberry", new MarketItem(
-                "Blueberry",
+        details.put("AdditionalFruits:Blueberry", new MarketItem(
+                "AdditionalFruits:Blueberry",
+                "Blueberries",
                 "Blue/purple berries, perfect for a quick treat!",
-                10
+                2,
+                false
         ));
 
-        details.put("Cranberry", new MarketItem(
-                "Cranberry",
+        details.put("AdditionalFruits:Cranberry", new MarketItem(
+                "AdditionalFruits:Cranberry",
+                "Cranberries",
                 "Small berries, with an incredible red hue.",
-                10
+                2,
+                false
         ));
 
-        details.put("Peach", new MarketItem(
-                "Peach",
+        details.put("AdditionalFruits:Peach", new MarketItem(
+                "AdditionalFruits:Peach",
+                "Peaches",
                 "A medium-sized pink fruit; nice and juicy!",
-                10
+                2,
+                false
         ));
 
-        details.put("Raspberry", new MarketItem(
-                "Raspberry",
+        details.put("AdditionalFruits:Raspberry", new MarketItem(
+                "AdditionalFruits:Raspberry",
+                "Raspberries",
                 "A small red berry, or is it really a bunch of smaller berries?",
-                10
+                2,
+                false
         ));
 
-        details.put("Strawberry", new MarketItem(
-                "Strawberry",
+        details.put("AdditionalFruits:Strawberry", new MarketItem(
+                "AdditionalFruits:Strawberry",
+                "Strawberries",
                 "A delicious red berry with an outer layer of seeds.",
-                10
+                2,
+                false
         ));
 
-        details.put("Tomato", new MarketItem(
-                "Tomato",
+        details.put("AdditionalFruits:Tomato", new MarketItem(
+                "AdditionalFruits:Tomato",
+                "Tomatoes",
                 "A medium-size red vegetable/fruit.",
-                10
+                2,
+                false
         ));
 
-        details.put("Cucumber", new MarketItem(
-                "Cucumber",
+        details.put("AdditionalVegetables:Cucumber", new MarketItem(
+                "AdditionalVegetables:Cucumber",
+                "Cucumbers",
                 "A long green vegetable, delicious to eat in slices!",
-                10
+                2,
+                false
         ));
 
-        details.put("Potato", new MarketItem(
-                "Potato",
+        details.put("AdditionalVegetables:Potato", new MarketItem(
+                "AdditionalVegetables:Potato",
+                "Potatoes",
                 "A brownish root vegetable, and a major ingredient in French Fries!",
-                10
+                2,
+                false
+        ));
+
+        details.put("CoreAssets:Torch", new MarketItem(
+                "CoreAssets:Torch",
+                "Torches",
+                "Great for lighting up a room!",
+                2,
+                true
+        ));
+
+        details.put("CoreAssets:pickaxe", new MarketItem(
+                "CoreAssets:pickaxe",
+                "Pickaxe",
+                "There's gold in them hills, and this tool will bring you to it.",
+                2,
+                true
         ));
 
         details.put(EMPTY, new MarketItem(
                 "",
                 "",
-                0
+                "",
+                0,
+                false
         ));
 
         isInitialised = true;
@@ -131,8 +159,10 @@ public final class MarketItemBuilder {
         Random random = new Random();
         MarketItem item = new MarketItem(
                 name,
+                name,
                 "A mystery item. No description is available",
-                random.nextInt(50)
+                random.nextInt(50),
+                false
         );
         details.put(name, item);
         return item;

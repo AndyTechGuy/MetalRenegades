@@ -19,15 +19,18 @@ package org.terasology.metalrenegades.economy.ui;
  * Data class holding all information about items bought or sold in the market
  */
 public class MarketItem {
+    public String displayName;
     public String name;
     public String description;
     public int cost;
     public int quantity;
     public boolean buyable;
     public boolean sellable;
+    public boolean isBlock;
 
-    public MarketItem(String name, String description, int cost) {
+    public MarketItem(String name, String displayName, String description, int cost, boolean isBlock) {
         this.name = name;
+        this.displayName = displayName;
         this.description = description;
         this.cost = cost;
     }

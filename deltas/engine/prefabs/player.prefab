@@ -12,7 +12,7 @@
       { "uri": "CoreAssets:axe", "quantity": 1 },
       { "uri": "CoreAdvancedAssets:dynamite", "quantity": 1 },
       { "uri": "CoreAdvancedAssets:gun", "quantity": 1 },
-      { "uri": "CoreAssets:Torch", "quantity": 99 }
+      { "uri": "CoreAssets:Torch", "quantity": 5 }
     ]
   }
 }
