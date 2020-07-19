@@ -24,5 +24,6 @@
                 "targetBeaconId" : "homeBeacon"
             }
         ]
-    }
+    },
+    "Network": {}
 }
