@@ -66,10 +66,6 @@ public class TaskOverlay implements MinimapOverlay {
         return 0;
     }
 
-    public EntityRef getBeaconEntity() {
-        return beaconEntity;
-    }
-
     /**
      * Constrains a point to a specified region. Works like a vector clamp.
      *

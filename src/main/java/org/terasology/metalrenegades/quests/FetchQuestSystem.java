@@ -37,17 +37,18 @@ import org.terasology.math.geom.Vector3f;
 import org.terasology.network.ClientComponent;
 import org.terasology.registry.In;
 import org.terasology.rendering.nui.Color;
-import org.terasology.tasks.CollectBlocksTask;
-import org.terasology.tasks.Task;
-import org.terasology.tasks.TaskGraph;
-import org.terasology.tasks.components.QuestComponent;
+import org.terasology.tasks.*;
+import org.terasology.tasks.components.PlayerQuestComponent;
+import org.terasology.tasks.components.QuestItemComponent;
 import org.terasology.tasks.components.QuestListComponent;
 import org.terasology.tasks.components.QuestSourceComponent;
 import org.terasology.tasks.events.BeforeQuestEvent;
 import org.terasology.tasks.events.QuestCompleteEvent;
+import org.terasology.tasks.events.QuestStartedEvent;
 import org.terasology.tasks.events.StartTaskEvent;
 import org.terasology.tasks.systems.QuestSystem;
 import org.terasology.utilities.Assets;
+import org.terasology.world.time.WorldTimeEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,71 +71,98 @@ public class FetchQuestSystem extends BaseComponentSystem {
     @In
     private QuestSystem questSystem;
 
-    @In
-    private LocalPlayer localPlayer;
-
-    private EntityRef activeQuestEntity;
     private Map<String, Integer> amounts = new HashMap<>();
 
     private final String HOME_TASK_ID = "returnHome";
     private final String FETCH_QUEST_ID = "FetchQuest";
     private final String ITEM_ID = "WildAnimals:Meat";
     private final int REWARD = 50;
+    private final int REGEN_CYCLES = 20;
 
-    @Override
-    public void postBegin() {
-        activeQuestEntity = EntityRef.NULL;
-    }
+    private int cyclesLeft;
 
-    @ReceiveEvent(components = GenericBuildingComponent.class)
-    public void onChurchSpawn(BuildingEntitySpawnedEvent event, EntityRef entityRef) {
-        GenericBuildingComponent genericBuildingComponent = entityRef.getComponent(GenericBuildingComponent.class);
-        if (genericBuildingComponent.name.equals("simplechurch")) {
-            DynParcel dynParcel = entityRef.getComponent(DynParcelRefComponent.class).dynParcel;
+    @ReceiveEvent
+    public void worldTimeCycle(WorldTimeEvent worldTimeEvent, EntityRef entity) {
+        cyclesLeft++;
+        if (cyclesLeft > REGEN_CYCLES) {
+            for (EntityRef church : entityManager.getEntitiesWith(GenericBuildingComponent.class)) {
+                GenericBuildingComponent genericBuildingComponent = church.getComponent(GenericBuildingComponent.class);
+                if (genericBuildingComponent.name.equals("simplechurch") &&
+                    !church.hasComponent(QuestPointReferenceComponent.class)) {
+                    DynParcel dynParcel = church.getComponent(DynParcelRefComponent.class).dynParcel;
 
-            Optional<Prefab> questPointOptional = Assets.getPrefab("Tasks:QuestPoint");
-            if (questPointOptional.isPresent()) {
-                Rect2i rect2i = dynParcel.shape;
-                Vector3f spawnPosition = new Vector3f(rect2i.minX() + rect2i.sizeX() / 2, dynParcel.getHeight() + 2, rect2i.minY() + rect2i.sizeY() / 2);
-                EntityRef questPoint = entityManager.create(questPointOptional.get(), spawnPosition);
-                SettlementRefComponent settlementRefComponent = entityRef.getComponent(SettlementRefComponent.class);
-                questPoint.addComponent(settlementRefComponent);
+                    Optional<Prefab> questPointOptional = Assets.getPrefab("Tasks:QuestPoint");
+                    if (questPointOptional.isPresent()) {
+                        Rect2i rect2i = dynParcel.shape;
+                        Vector3f spawnPosition = new Vector3f(rect2i.minX() + rect2i.sizeX() / 2, dynParcel.getHeight() + 2, rect2i.minY() + rect2i.sizeY() / 2);
+                        EntityRef questPoint = entityManager.create(questPointOptional.get(), spawnPosition);
+                        SettlementRefComponent settlementRefComponent = church.getComponent(SettlementRefComponent.class);
+                        questPoint.addComponent(settlementRefComponent);
 
-                // Prepare the QuestListComponent
-                QuestListComponent questListComponent = new QuestListComponent();
-                questListComponent.questItems = new ArrayList<>();
-                questListComponent.questItems.add("card");
-                questPoint.addComponent(questListComponent);
-
-
-                // Prepare the NameTagComponent
-                NameTagComponent nameTagComponent = new NameTagComponent();
-                nameTagComponent.text = "Quest";
-                nameTagComponent.textColor = Color.YELLOW;
-                nameTagComponent.scale = 2;
-                nameTagComponent.yOffset = 2;
-                questPoint.addComponent(nameTagComponent);
+                        // Prepare the QuestListComponent
+                        QuestListComponent questListComponent = new QuestListComponent();
+                        questListComponent.questItems = new ArrayList<>();
+                        questListComponent.questItems.add("card");
+                        questPoint.addComponent(questListComponent);
 
 
-                // Prepare the LocationComponent
-                LocationComponent locationComponent = new LocationComponent();
-                locationComponent.setWorldPosition(spawnPosition);
-                questPoint.addOrSaveComponent(locationComponent);
+                        // Prepare the NameTagComponent
+                        NameTagComponent nameTagComponent = new NameTagComponent();
+                        nameTagComponent.text = "Quest";
+                        nameTagComponent.textColor = Color.YELLOW;
+                        nameTagComponent.scale = 2;
+                        nameTagComponent.yOffset = 2;
+                        questPoint.addComponent(nameTagComponent);
+
+                        // Prepare the LocationComponent
+                        LocationComponent locationComponent = new LocationComponent();
+                        locationComponent.setWorldPosition(spawnPosition);
+                        questPoint.addOrSaveComponent(locationComponent);
+
+                        church.saveComponent(new QuestPointReferenceComponent(questPoint));
+                    }
+                }
             }
+
+            cyclesLeft = 0;
         }
     }
 
     @ReceiveEvent
-    public void onQuestActivated(BeforeQuestEvent event, EntityRef questItem) {
-        activeQuestEntity = questItem.getComponent(QuestSourceComponent.class).source;
+    public void beforeQuestActivated(BeforeQuestEvent event, EntityRef questItem) {
+        EntityRef returnEntity = questItem.getComponent(QuestSourceComponent.class).source;
+        LocationComponent returnLocation = returnEntity.getComponent(LocationComponent.class);
+        QuestItemComponent questItemComponent = questItem.getComponent(QuestItemComponent.class);
+        TaskGraph taskGraph = new TaskGraph();
 
-        QuestComponent questComponent = questItem.getComponent(QuestComponent.class);
-        TaskGraph tasks = questComponent.tasks;
-        for (Task t : tasks) {
-            if (t instanceof CollectBlocksTask) {
-                amounts.put(((CollectBlocksTask) t).getItemId(), ((CollectBlocksTask) t).getTargetAmount());
+        questItemComponent.tasks.forEach(task -> {
+            if (task instanceof CollectBlocksTask) {
+                CollectBlocksTask collectTask = (CollectBlocksTask) task;
+                taskGraph.add(new CollectBlocksTask(collectTask.getId(), collectTask.getAmount(), collectTask.getItemId()));
+            } else if (task instanceof GoToBeaconTask) {
+                GoToBeaconTask beaconTask = (GoToBeaconTask) task;
+                taskGraph.add(new GoToBeaconTask(beaconTask.getId(), beaconTask.getTargetBeaconId()));
+            } else if (task instanceof TimeConstraintTask) {
+                TimeConstraintTask timeTask = (TimeConstraintTask) task;
+                taskGraph.add(new TimeConstraintTask(timeTask.getId(), timeTask.getTargetTime()));
+            }
+        });
+
+        FetchQuest fetchQuest = new FetchQuest(event.player, returnLocation.getWorldPosition(), questItemComponent.shortName, questItemComponent.description, taskGraph);
+
+        PlayerQuestComponent playerQuestComponent = event.player.getComponent(PlayerQuestComponent.class);
+        playerQuestComponent.questList.add(fetchQuest);
+
+        for (Task task : taskGraph) {
+            if (taskGraph.getTaskStatus(task) != Status.PENDING) {
+
+                playerQuestComponent.activeTaskList.put(fetchQuest, task);
+                event.player.send(new StartTaskEvent(fetchQuest, task));
             }
         }
+
+        returnEntity.destroy();
+        event.consume();
     }
 
     @ReceiveEvent
@@ -144,20 +172,21 @@ public class FetchQuestSystem extends BaseComponentSystem {
             return;
         }
 
-        LocationComponent locationComponent = activeQuestEntity.getComponent(LocationComponent.class);
+        FetchQuest fetchQuest = (FetchQuest) event.getQuest();
+
         Optional<Prefab> beaconOptional = Assets.getPrefab("Tasks:BeaconMark");
         if (beaconOptional.isPresent()) {
-            EntityRef beacon = entityManager.create(beaconOptional.get(), locationComponent.getWorldPosition());
-            activeQuestEntity.destroy();
-            activeQuestEntity = beacon;
-        }
+            EntityRef beacon = entityManager.create(beaconOptional.get(), fetchQuest.getReturnPoint());
+            fetchQuest.setReturnPoint(fetchQuest.getReturnPoint());
 
-        localPlayer.getCharacterEntity().send(new AddBeaconOverlayEvent(activeQuestEntity));
+            ClientComponent clientComponent = entityRef.getComponent(ClientComponent.class);
+            clientComponent.character.send(new AddBeaconOverlayEvent(beacon));
+        }
     }
 
     @ReceiveEvent
     public void onQuestComplete(QuestCompleteEvent event, EntityRef client) {
-        if (event.isSuccess()) {
+        if (event.isSuccess() && event.getQuest() instanceof FetchQuest) {
             // Remove items from inventory
             ClientComponent component = client.getComponent(ClientComponent.class);
             EntityRef character = component.character;
@@ -176,17 +205,13 @@ public class FetchQuestSystem extends BaseComponentSystem {
             character.send(new WalletTransactionEvent(REWARD));
 
             // Remove the minmap overlay
-            character.send(new RemoveBeaconOverlayEvent(activeQuestEntity));
+            character.send(new RemoveBeaconOverlayEvent());
 
             // remove the quest
-            questSystem.removeQuest(event.getQuest(), true);
+            PlayerQuestComponent playerQuestComponent = client.getComponent(PlayerQuestComponent.class);
+            playerQuestComponent.questList.remove(event.getQuest());
 
 //            activeQuestEntity.destroy();
         }
-    }
-
-    @ReceiveEvent
-    public void onDestroyActiveEntityEvent(DestroyActiveEntityEvent event, EntityRef character) {
-        activeQuestEntity.destroy();
     }
 }

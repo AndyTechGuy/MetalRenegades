@@ -17,6 +17,7 @@ package org.terasology.metalrenegades.quests;
 
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
+import org.terasology.entitySystem.entity.internal.EntityDestroySubscriber;
 import org.terasology.entitySystem.event.ReceiveEvent;
 import org.terasology.entitySystem.systems.BaseComponentSystem;
 import org.terasology.entitySystem.systems.RegisterMode;
@@ -27,6 +28,7 @@ import org.terasology.network.ClientComponent;
 import org.terasology.network.NetworkMode;
 import org.terasology.network.NetworkSystem;
 import org.terasology.registry.In;
+import org.terasology.tasks.components.QuestBeaconComponent;
 
 /**
  * Manages the beacon minimap overlay

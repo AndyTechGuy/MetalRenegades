@@ -17,14 +17,13 @@ package org.terasology.metalrenegades.quests;
 
 import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.entitySystem.event.Event;
+import org.terasology.network.OwnerEvent;
 
 /**
  * Removes the beacon overlay from the minimap
  */
+@OwnerEvent
 public class RemoveBeaconOverlayEvent implements Event {
-    public EntityRef beaconEntity;
 
-    public RemoveBeaconOverlayEvent(EntityRef beaconEntity) {
-        this.beaconEntity = beaconEntity;
-    }
+    public RemoveBeaconOverlayEvent() { }
 }

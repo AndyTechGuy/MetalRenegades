@@ -17,10 +17,12 @@ package org.terasology.metalrenegades.quests;
 
 import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.entitySystem.event.Event;
+import org.terasology.network.OwnerEvent;
 
 /**
  * Adds the beacon overlay to the minimap
  */
+@OwnerEvent
 public class AddBeaconOverlayEvent implements Event {
     public EntityRef beaconEntity;
 
